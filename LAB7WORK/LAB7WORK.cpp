@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <algorithm>  // Для алгоритмов сортировки и поиска
 
 // Базовый класс Author
 class Author {
@@ -233,35 +234,30 @@ public:
         std::cout << "Книга успешно добавлена в библиотеку!" << std::endl;
     }
 
-    void issueBook() {
-        try {
-            std::string title;
-            std::cout << "Введите название книги для выдачи: ";
-            std::getline(std::cin, title);
+    // Алгоритм сортировки: сортируем книги по названию (title)
+    void sortBooks() {
+        std::sort(books.begin(), books.end(), [](Book* a, Book* b) {
+            return a->getTitle() < b->getTitle();
+            });
+        std::cout << "Книги отсортированы по названию!" << std::endl;
+    }
 
-            Book* bookToIssue = nullptr;
-            for (auto& book : books) {
-                if (book->getTitle() == title && book->getCopiesAvailable() > 0) {
-                    bookToIssue = book;
-                    break;
-                }
-            }
+    // Алгоритм поиска: находим книгу по названию
+    void findBookByTitle() {
+        std::string title;
+        std::cout << "Введите название книги для поиска: ";
+        std::getline(std::cin, title);
 
-            if (bookToIssue) {
-                Reader reader;
-                reader.input();
-                bookToIssue->decreaseCopies();
+        auto it = std::find_if(books.begin(), books.end(), [&title](Book* book) {
+            return book->getTitle() == title;
+            });
 
-                std::cout << "Книга выдана читателю: " << std::endl;
-                reader.print();
-                bookToIssue->print();
-            }
-            else {
-                throw std::runtime_error("Книга не найдена или нет доступных копий!");
-            }
+        if (it != books.end()) {
+            std::cout << "Книга найдена:\n";
+            (*it)->print();
         }
-        catch (const std::runtime_error& e) {
-            std::cout << "Ошибка: " << e.what() << std::endl;
+        else {
+            std::cout << "Книга не найдена.\n";
         }
     }
 
@@ -285,12 +281,14 @@ public:
                 std::cout << "1. Добавить книгу" << std::endl;
                 std::cout << "2. Выдать книгу" << std::endl;
                 std::cout << "3. Показать все книги" << std::endl;
-                std::cout << "4. Выход" << std::endl;
+                std::cout << "4. Сортировать книги" << std::endl;
+                std::cout << "5. Найти книгу по названию" << std::endl;
+                std::cout << "6. Выход" << std::endl;
                 std::cout << "Введите ваш выбор: ";
                 std::cin >> choice;
                 std::cin.ignore();  // Очищаем буфер после ввода числа
 
-                if (choice < 1 || choice > 4) {
+                if (choice < 1 || choice > 6) {
                     throw std::out_of_range("Неверный выбор. Попробуйте снова.");
                 }
 
@@ -305,6 +303,12 @@ public:
                     showBooks();
                     break;
                 case 4:
+                    sortBooks();
+                    break;
+                case 5:
+                    findBookByTitle();
+                    break;
+                case 6:
                     std::cout << "Выход из программы." << std::endl;
                     break;
                 default:
@@ -314,7 +318,7 @@ public:
             catch (const std::exception& e) {
                 std::cout << "Ошибка: " << e.what() << std::endl;
             }
-        } while (choice != 4);
+        } while (choice != 6);
     }
 };
 
