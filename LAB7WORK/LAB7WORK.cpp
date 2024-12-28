@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <algorithm>  // Для алгоритмов сортировки и поиска
+#include <algorithm>  // Для сортировки
 
 // Базовый класс Author
 class Author {
@@ -234,30 +234,35 @@ public:
         std::cout << "Книга успешно добавлена в библиотеку!" << std::endl;
     }
 
-    // Алгоритм сортировки: сортируем книги по названию (title)
-    void sortBooks() {
-        std::sort(books.begin(), books.end(), [](Book* a, Book* b) {
-            return a->getTitle() < b->getTitle();
-            });
-        std::cout << "Книги отсортированы по названию!" << std::endl;
-    }
+    void issueBook() {
+        try {
+            std::string title;
+            std::cout << "Введите название книги для выдачи: ";
+            std::getline(std::cin, title);
 
-    // Алгоритм поиска: находим книгу по названию
-    void findBookByTitle() {
-        std::string title;
-        std::cout << "Введите название книги для поиска: ";
-        std::getline(std::cin, title);
+            Book* bookToIssue = nullptr;
+            for (auto& book : books) {
+                if (book->getTitle() == title && book->getCopiesAvailable() > 0) {
+                    bookToIssue = book;
+                    break;
+                }
+            }
 
-        auto it = std::find_if(books.begin(), books.end(), [&title](Book* book) {
-            return book->getTitle() == title;
-            });
+            if (bookToIssue) {
+                Reader reader;
+                reader.input();
+                bookToIssue->decreaseCopies();
 
-        if (it != books.end()) {
-            std::cout << "Книга найдена:\n";
-            (*it)->print();
+                std::cout << "Книга выдана читателю: " << std::endl;
+                reader.print();
+                bookToIssue->print();
+            }
+            else {
+                throw std::runtime_error("Книга не найдена или нет доступных копий!");
+            }
         }
-        else {
-            std::cout << "Книга не найдена.\n";
+        catch (const std::runtime_error& e) {
+            std::cout << "Ошибка: " << e.what() << std::endl;
         }
     }
 
@@ -270,6 +275,32 @@ public:
             for (const auto& book : books) {
                 book->print();
             }
+        }
+    }
+
+    void sortBooks() {
+        std::sort(books.begin(), books.end(), [](Book* a, Book* b) {
+            return a->getTitle() < b->getTitle();
+            });
+        std::cout << "Книги отсортированы по названию!" << std::endl;
+    }
+
+    void findBookByTitle() {
+        std::string title;
+        std::cout << "Введите название книги для поиска: ";
+        std::getline(std::cin, title);
+
+        bool found = false;
+        for (auto& book : books) {
+            if (book->getTitle() == title) {
+                book->print();
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            std::cout << "Книга не найдена!" << std::endl;
         }
     }
 
