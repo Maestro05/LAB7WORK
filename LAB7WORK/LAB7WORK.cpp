@@ -1,363 +1,446 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
-#include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <stdexcept>
-#include <string>
+﻿#include <iostream>
 #include <vector>
-#include <algorithm>  // Для сортировки
+#include <string>
+#include <stdexcept> // Для исключений
+#include <map>
+#include <algorithm>  // Для сортировки и поиска
+#include <windows.h>
 
-// Базовый класс Author
-class Author {
-private:
-    std::string name;
-    std::string surname;
-    std::string birthdate;
+using namespace std;
 
-public:
-    Author() : name(""), surname(""), birthdate("") {}
-
-    Author(const Author& other)
-        : name(other.name), surname(other.surname), birthdate(other.birthdate) {
-        std::cout << "Конструктор копии автора: " << name << " " << surname << std::endl;
-    }
-
-    void input() {
-        std::cout << "Введите имя автора: ";
-        std::getline(std::cin, name);
-        std::cout << "Введите фамилию автора: ";
-        std::getline(std::cin, surname);
-        std::cout << "Введите дату рождения (DD.MM.YYYY): ";
-        std::getline(std::cin, birthdate);
-    }
-
-    const std::string& getName() const { return name; }
-    const std::string& getSurname() const { return surname; }
-    const std::string& getBirthdate() const { return birthdate; }
-
-    void print() const {
-        std::cout << "Автор: " << name << " " << surname << ", Дата рождения: " << birthdate << std::endl;
-    }
-};
-
-// Класс категории
-class Category {
-private:
-    std::string name;
-    std::string description;
-
-public:
-    Category() : name(""), description("") {}
-
-    void input() {
-        std::cout << "Введите название категории: ";
-        std::getline(std::cin, name);
-        std::cout << "Введите описание категории: ";
-        std::getline(std::cin, description);
-    }
-
-    const std::string& getName() const { return name; }
-    const std::string& getDescription() const { return description; }
-
-    void print() const {
-        std::cout << "Категория: " << name << ", Описание: " << description << std::endl;
-    }
-};
-
-// Абстрактный базовый класс для объектов, которые можно выдать
-class Lendable {
-public:
-    virtual void decreaseCopies() = 0;  // Чисто виртуальная функция для уменьшения доступных копий
-    virtual void print() const = 0;     // Чисто виртуальная функция для вывода информации
-    virtual ~Lendable() = default;
-};
-
-// Базовый класс Book, реализующий Lendable
-class Book : public Lendable {
+// Базовый класс для всех элементов меню
+class MenuItem {
 protected:
-    std::string title;
-    Author author;
-    Category category;
-    int year;
-    int copiesAvailable;
-
+    double price; // Цена блюда
 public:
-    Book() : title(""), year(0), copiesAvailable(0) {}
+    string name; // Название блюда
 
-    virtual void input() {
-        std::cout << "Введите название книги: ";
-        std::getline(std::cin, title);
-        author.input();
-        category.input();
+    MenuItem(const string& name, double price)
+        : name(name), price(price) {}
 
-        std::cout << "Введите год издания: ";
-        std::cin >> year;
-        std::cout << "Введите количество доступных копий: ";
-        std::cin >> copiesAvailable;
-        std::cin.ignore();  // Очищаем буфер после ввода чисел
-    }
-
-    const std::string& getTitle() const { return title; }
-    const Author& getAuthor() const { return author; }
-    const Category& getCategory() const { return category; }
-    int getYear() const { return year; }
-    int getCopiesAvailable() const { return copiesAvailable; }
-
-    virtual void decreaseCopies() override {
-        if (copiesAvailable > 0) {
-            --copiesAvailable;
-        }
-        else {
-            throw std::runtime_error("Нет доступных копий для выдачи!");
-        }
-    }
-
-    virtual void print() const override {
-        std::cout << "Книга: " << title << ", Год: " << year << ", Доступных копий: " << copiesAvailable << std::endl;
-        author.print();
-        category.print();
-    }
+    // Конструктор копирования
+    MenuItem(const MenuItem& other)
+        : name(name), price(other.price) {}
 
     // Перегрузка оператора присваивания
-    Book& operator=(const Book& other) {
+    MenuItem& operator=(const MenuItem& other) {
+        if (this == &other) {  // Проверка на самоприсваивание
+            return *this;
+        }
+        name = other.name;
+        price = other.price;
+        return *this;
+    }
+
+    // Перегрузка оператора сравнения
+    bool operator==(const MenuItem& other) const {
+        return name == other.name && price == other.price;
+    }
+
+    // Геттер для получения цены
+    double getPrice() const {
+        return price;
+    }
+
+    // Метод для отображения информации
+    virtual void display() const {
+        cout << name << " - " << price << " руб.\n";
+    }
+
+    virtual MenuItem* clone() const {
+        return new MenuItem(*this);  // Создает копию объекта MenuItem
+    }
+
+    virtual ~MenuItem() {}
+
+    // Дружественная функция для доступа к приватным данным
+    friend void printMenuItemDetails(const MenuItem& item);
+};
+
+// Дружественная функция для доступа к приватным данным
+void printMenuItemDetails(const MenuItem& item) {
+    cout << "Детали блюда: " << item.name << ", Цена: " << item.price << endl;
+}
+
+// Класс для главного блюда
+class MainDish : public MenuItem {
+public:
+    MainDish(const string& name, double price)
+        : MenuItem(name, price) {}
+
+    void display() const override {
+        cout << "[Главное блюдо] ";
+        MenuItem::display();
+    }
+    MenuItem* clone() const override {
+        return new MainDish(name, price);  // Создаем новый объект MainDish с именем и ценой
+    }
+    MainDish& operator=(const MenuItem& other) {
         if (this != &other) {
-            title = other.title;
-            author = other.author;
-            category = other.category;
-            year = other.year;
-            copiesAvailable = other.copiesAvailable;
+            name = other.name;  // Присваиваем только поля базового класса
+            price = other.getPrice();
         }
         return *this;
     }
 };
 
-// Производный класс для научных книг
-class ScienceBook : public Book {
-private:
-    std::string researchField;  // Научная область
-
+// Класс для закусок
+class Appetizer : public MenuItem {
 public:
-    ScienceBook() : Book(), researchField("") {}
+    Appetizer(const string& name, double price)
+        : MenuItem(name, price) {}
 
-    ScienceBook(const ScienceBook& other) : Book(other), researchField(other.researchField) {}
-
-    void input() override {
-        Book::input();
-        std::cout << "Введите научную область: ";
-        std::getline(std::cin, researchField);
+    void display() const override {
+        cout << "[Закуска] ";
+        MenuItem::display();
     }
-
-    void print() const override {
-        Book::print();
-        std::cout << "Научная область: " << researchField << std::endl;
+    MenuItem* clone() const override {
+        return new Appetizer(name, price);  // Копируем имя и цену в новый объект
     }
 };
 
-// Производный класс для художественных книг
-class FictionBook : public Book {
-private:
-    std::string genre;  // Жанр
-
+// Класс для напитков
+class Drink : public MenuItem {
 public:
-    FictionBook() : Book(), genre("") {}
+    Drink(const string& name, double price)
+        : MenuItem(name, price) {} // Вызов конструктора базового класса
 
-    FictionBook(const FictionBook& other) : Book(other), genre(other.genre) {}
-
-    void input() override {
-        Book::input();
-        std::cout << "Введите жанр книги: ";
-        std::getline(std::cin, genre);
+    void display() const override {
+        cout << "[Напиток] ";
+        MenuItem::display();
     }
-
-    void print() const override {
-        Book::print();
-        std::cout << "Жанр: " << genre << std::endl;
+    MenuItem* clone() const override {
+        return new Drink(name, price);  // Копируем имя и цену
     }
 };
 
-// Класс читателя
-class Reader {
-private:
-    std::string name;
-    std::string surname;
-    std::string cardNumber;
-
+// Класс для десертов
+class Dessert : public MenuItem {
 public:
-    Reader() : name(""), surname(""), cardNumber("") {}
+    Dessert(const string& name, double price)
+        : MenuItem(name, price) {}
 
-    void input() {
-        std::cout << "Введите имя читателя: ";
-        std::getline(std::cin, name);
-        std::cout << "Введите фамилию читателя: ";
-        std::getline(std::cin, surname);
-        std::cout << "Введите номер читательского билета: ";
-        std::getline(std::cin, cardNumber);
+    void display() const override {
+        cout << "[Десерт] ";
+        MenuItem::display();
     }
-
-    void print() const {
-        std::cout << "Читатель: " << name << " " << surname << ", Номер карты: " << cardNumber << std::endl;
+    MenuItem* clone() const override {
+        return new Dessert(name, price);  // Копируем имя и цену
     }
 };
 
-// Класс библиотеки
-class LibrarySystem {
-private:
-    std::vector<Book*> books;  // Список книг в библиотеке
-
+// Класс для обработки заказа
+class Order {
 public:
-    ~LibrarySystem() {
-        for (auto book : books) {
-            delete book;  // Освобождаем память
-        }
+    vector<MenuItem*> items;  // Список заказанных позиций
+    static int totalOrders;    // Статическое поле для подсчета общего количества заказов
+
+    Order() {
+        totalOrders++;  // Увеличиваем счетчик заказов при создании нового заказа
     }
 
-    void addBook() {
-        int choice;
-        std::cout << "Выберите тип книги:\n1. Научная\n2. Художественная\n";
-        std::cin >> choice;
-        std::cin.ignore();
+    // Добавить элемент в заказ
+    void addItem(MenuItem* item) {
+        items.push_back(item);
 
-        Book* newBook = nullptr;
-        if (choice == 1) {
-            newBook = new ScienceBook();
-        }
-        else if (choice == 2) {
-            newBook = new FictionBook();
-        }
-        else {
-            std::cout << "Неверный выбор.\n";
-            return;
-        }
-
-        newBook->input();
-        books.push_back(newBook);
-        std::cout << "Книга успешно добавлена в библиотеку!" << std::endl;
-    }
-
-    void issueBook() {
-        try {
-            std::string title;
-            std::cout << "Введите название книги для выдачи: ";
-            std::getline(std::cin, title);
-
-            Book* bookToIssue = nullptr;
-            for (auto& book : books) {
-                if (book->getTitle() == title && book->getCopiesAvailable() > 0) {
-                    bookToIssue = book;
-                    break;
-                }
-            }
-
-            if (bookToIssue) {
-                Reader reader;
-                reader.input();
-                bookToIssue->decreaseCopies();
-
-                std::cout << "Книга выдана читателю: " << std::endl;
-                reader.print();
-                bookToIssue->print();
-            }
-            else {
-                throw std::runtime_error("Книга не найдена или нет доступных копий!");
-            }
-        }
-        catch (const std::runtime_error& e) {
-            std::cout << "Ошибка: " << e.what() << std::endl;
-        }
-    }
-
-    void showBooks() const {
-        if (books.empty()) {
-            std::cout << "Нет доступных книг в библиотеке." << std::endl;
-        }
-        else {
-            std::cout << "\nСписок книг в библиотеке:" << std::endl;
-            for (const auto& book : books) {
-                book->print();
-            }
-        }
-    }
-
-    void sortBooks() {
-        std::sort(books.begin(), books.end(), [](Book* a, Book* b) {
-            return a->getTitle() < b->getTitle();
+        // Сортируем элементы по цене
+        sort(items.begin(), items.end(), [](MenuItem* a, MenuItem* b) {
+            return a->getPrice() < b->getPrice();  // Сортировка по возрастанию цены
             });
-        std::cout << "Книги отсортированы по названию!" << std::endl;
     }
 
-    void findBookByTitle() {
-        std::string title;
-        std::cout << "Введите название книги для поиска: ";
-        std::getline(std::cin, title);
+    // Поиск по названию блюда в текущем заказе
+    void searchItemByName(const string& name) const {
+        auto it = find_if(items.begin(), items.end(), [&name](MenuItem* item) {
+            return item->name == name;  // Сравниваем название блюда
+            });
 
-        bool found = false;
-        for (auto& book : books) {
-            if (book->getTitle() == title) {
-                book->print();
-                found = true;
-                break;
-            }
+        if (it != items.end()) {
+            // Если элемент найден, выводим его
+            cout << "Найдено блюдо:\n";
+            (*it)->display();
         }
-
-        if (!found) {
-            std::cout << "Книга не найдена!" << std::endl;
+        else {
+            cout << "Блюдо с таким названием не найдено.\n";
         }
     }
 
-    void showMenu() {
-        int choice;
-        do {
-            try {
-                std::cout << "\n--- Меню библиотеки ---" << std::endl;
-                std::cout << "1. Добавить книгу" << std::endl;
-                std::cout << "2. Выдать книгу" << std::endl;
-                std::cout << "3. Показать все книги" << std::endl;
-                std::cout << "4. Сортировать книги" << std::endl;
-                std::cout << "5. Найти книгу по названию" << std::endl;
-                std::cout << "6. Выход" << std::endl;
-                std::cout << "Введите ваш выбор: ";
-                std::cin >> choice;
-                std::cin.ignore();  // Очищаем буфер после ввода числа
+    // Вывести заказ
+    void displayOrder(int orderNum) const {
+        double total = 0;
+        cout << "\nНомер заказа №" << orderNum << ":\n";  // Добавляем вывод номера заказа
+        for (const auto& item : items) {
+            item->display();
+            total += item->getPrice();
+        }
+        cout << "Общая сумма: " << total << " руб.\n";
+    }
 
-                if (choice < 1 || choice > 6) {
-                    throw std::out_of_range("Неверный выбор. Попробуйте снова.");
-                }
+    // Статический метод для получения количества заказов
+    static int getTotalOrders() {
+        return totalOrders;
+    }
 
-                switch (choice) {
-                case 1:
-                    addBook();
-                    break;
-                case 2:
-                    issueBook();
-                    break;
-                case 3:
-                    showBooks();
-                    break;
-                case 4:
-                    sortBooks();
-                    break;
-                case 5:
-                    findBookByTitle();
-                    break;
-                case 6:
-                    std::cout << "Выход из программы." << std::endl;
-                    break;
-                default:
-                    throw std::out_of_range("Неверный выбор. Попробуйте снова.");
-                }
-            }
-            catch (const std::exception& e) {
-                std::cout << "Ошибка: " << e.what() << std::endl;
-            }
-        } while (choice != 6);
+    // Конструктор копирования
+    Order(const Order& other) {
+        totalOrders = other.totalOrders;
+        for (const auto& item : other.items) {
+            // Создаем новые объекты на основе типа элемента
+            items.push_back(item->clone());  // Будет использовать метод clone для копирования объектов
+        }
+    }
+
+
+    // Перегрузка оператора присваивания
+    Order& operator=(const Order& other) {
+        if (this == &other) {
+            return *this;
+        }
+        totalOrders = other.totalOrders;
+        for (auto item : items) {
+            delete item;  // Освобождаем старую память
+        }
+        items.clear();  // Очищаем текущий заказ
+
+        for (const auto& item : other.items) {
+            items.push_back(item->clone());  // Используем метод clone для глубокого копирования
+        }
+        return *this;
+    }
+
+    ~Order() {
+        // Освобождаем память, если это необходимо
+        for (auto item : items) {
+            delete item;
+        }
     }
 };
+
+// Инициализация статического поля
+int Order::totalOrders = 0;
+
+// Абстрактный класс для категорий еды
+class FoodCategory {
+public:
+    virtual void displayCategory() const = 0;  // Чисто виртуальная функция
+
+    virtual ~FoodCategory() {}
+};
+
+class MainDishCategory : public FoodCategory {
+public:
+    void displayCategory() const override {
+        cout << "\nГлавные блюда:\n";
+        cout << "1. Борщ - 150 руб.\n";
+        cout << "2. Стейк - 300 руб.\n";
+        cout << "3. Пельмени - 180 руб.\n";
+        cout << "4. Ризотто - 220 руб.\n";
+    }
+};
+// Функции отображения меню
+void displayMenu() {
+    cout << "\nВыберите категорию меню:\n";
+    cout << "1. Главное блюдо\n";
+    cout << "2. Закуски\n";
+    cout << "3. Напитки\n";
+    cout << "4. Десерты\n";
+    cout << "5. Завершить заказ\n";
+    cout << "6. Копировать предыдущий заказ\n";
+    cout << "7. Копировать заказ по номеру\n";
+    cout << "8. Поиск блюда по названию\n";
+    cout << "9. Завершить работу\n";
+    cout << "Введите номер категории: ";
+}
+
+
+void displayAppetizers() {
+    cout << "\nЗакуски:\n";
+    cout << "1. Салат Цезарь - 120 руб.\n";
+    cout << "2. Оливье - 100 руб.\n";
+    cout << "3. Блины с икрой - 150 руб.\n";
+    cout << "4. Тосты с авокадо - 110 руб.\n";
+}
+
+void displayDrinks() {
+    cout << "\nНапитки:\n";
+    cout << "1. Кола - 50 руб.\n";
+    cout << "2. Минеральная вода - 40 руб.\n";
+    cout << "3. Сок апельсиновый - 70 руб.\n";
+    cout << "4. Чай черный - 60 руб.\n";
+}
+
+void displayDesserts() {
+    cout << "\nДесерты:\n";
+    cout << "1. Торт Наполеон - 80 руб.\n";
+    cout << "2. Мороженое - 60 руб.\n";
+    cout << "3. Чизкейк - 120 руб.\n";
+    cout << "4. Пирог с яблоками - 90 руб.\n";
+}
 
 int main() {
-    setlocale(LC_ALL, "Rus");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
 
-    LibrarySystem library;
-    library.showMenu();
+    // Создание объектов для меню
+    vector<MenuItem*> mainDishes = {
+        new MainDish("Борщ", 150),
+        new MainDish("Стейк", 300),
+        new MainDish("Пельмени", 180),
+        new MainDish("Ризотто", 220)
+    };
+
+    vector<MenuItem*> appetizers = {
+        new Appetizer("Салат Цезарь", 120),
+        new Appetizer("Оливье", 100),
+        new Appetizer("Блины с икрой", 150),
+        new Appetizer("Тосты с авокадо", 110)
+    };
+
+    vector<MenuItem*> drinks = {
+        new Drink("Кола", 50),
+        new Drink("Минеральная вода", 40),
+        new Drink("Сок апельсиновый", 70),
+        new Drink("Чай черный", 60)
+    };
+
+    vector<MenuItem*> desserts = {
+        new Dessert("Торт Наполеон", 80),
+        new Dessert("Мороженое", 60),
+        new Dessert("Чизкейк", 120),
+        new Dessert("Пирог с яблоками", 90)
+    };
+
+    // История заказов
+    vector<Order> orderHistory;
+
+    // Создание объекта заказа
+    Order currentOrder;
+    bool ordering = true;
+    int orderNumber = 1;
+
+    while (ordering) {
+        displayMenu();
+
+        int category;
+        cin >> category;
+
+        switch (category) {
+        case 1: {
+            FoodCategory* category1 = new MainDishCategory();
+            int choice;
+            category1->displayCategory();  // Выведет "Главные блюда:
+            cout << "Выберите главное блюдо (1-4): ";
+            cin >> choice;
+            delete category1;
+            if (choice >= 1 && choice <= 4) {
+                currentOrder.addItem(mainDishes[choice - 1]);
+            }
+            else {
+                throw invalid_argument("Некорректный выбор!");
+            }
+            break;
+        }
+        case 2: {
+            displayAppetizers();
+            int choice;
+            cout << "Выберите закуску (1-4): ";
+            cin >> choice;
+            if (choice >= 1 && choice <= 4) {
+                currentOrder.addItem(appetizers[choice - 1]);
+            }
+            else {
+                throw invalid_argument("Некорректный выбор!");
+            }
+            break;
+        }
+        case 3: {
+            displayDrinks();
+            int choice;
+            cout << "Выберите напиток (1-4): ";
+            cin >> choice;
+            if (choice >= 1 && choice <= 4) {
+                currentOrder.addItem(drinks[choice - 1]);
+            }
+            else {
+                throw invalid_argument("Некорректный выбор!");
+            }
+            break;
+        }
+        case 4: {
+            displayDesserts();
+            int choice;
+            cout << "Выберите десерт (1-4): ";
+            cin >> choice;
+            if (choice >= 1 && choice <= 4) {
+                currentOrder.addItem(desserts[choice - 1]);
+            }
+            else {
+                throw invalid_argument("Некорректный выбор!");
+            }
+            break;
+        }
+        case 5:
+            currentOrder.displayOrder(orderNumber); // Выводим номер заказа
+            orderHistory.push_back(currentOrder);  // Добавляем заказ в историю
+            currentOrder = Order(); // Сбрасываем текущий заказ для нового
+            orderNumber++;
+            break;
+        case 6:
+            if (!orderHistory.empty()) {
+                currentOrder = Order(orderHistory.back()); // Копируем предыдущий заказ
+                cout << "Копирован предыдущий заказ.\n";
+            }
+            else {
+                cout << "Нет предыдущих заказов для копирования.\n";
+            }
+            break;
+        case 7:
+            if (orderHistory.empty()) {
+                cout << "Нет заказов для копирования.\n";  // Если история заказов пуста
+            }
+            else {
+                // Вывод всей истории заказов с номерами
+                cout << "\nИстория заказов:\n";
+                for (int i = 0; i < orderHistory.size(); ++i) {
+                    cout << "Номер заказа №" << (i + 1) << ":\n";
+                    orderHistory[i].displayOrder(i + 1);  // Отображаем каждый заказ
+                    cout << "-------------------------\n";
+                }
+
+                // Запрос номера для копирования
+                int orderId;
+                cout << "Введите номер заказа для копирования: ";
+                cin >> orderId;
+
+                // Проверка корректности введенного номера
+                if (orderId > 0 && orderId <= orderHistory.size()) {
+                    currentOrder = Order(orderHistory[orderId - 1]);  // Копируем заказ по номеру
+                    cout << "Копирован заказ номер " << orderId << ".\n";
+                }
+                else {
+                    cout << "Неверный номер заказа. Попробуйте снова.\n";  // Обработка ошибки
+                }
+            }
+            break;
+        case 8:
+            {
+            cout << "Введите название блюда для поиска: ";
+            string name;
+            cin.ignore(); // Чтобы очистить буфер от лишнего символа новой строки
+            getline(cin, name);
+            currentOrder.searchItemByName(name); // Поиск блюда в текущем заказе
+            break;
+            }
+        case 9:
+            cout << "Завершение работы.\n";
+            cout << "Общее количество сделанных заказов: " << Order::getTotalOrders() - 1 << endl;
+            ordering = false;
+            break;
+        default:
+            cout << "Некорректный выбор. Попробуйте снова.\n";
+            break;
+        }
+    }
 
     return 0;
 }
